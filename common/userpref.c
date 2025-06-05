@@ -66,7 +66,7 @@
 #include <mbedtls/asn1write.h>
 #include <mbedtls/oid.h>
 #else
-#error No supported TLS/SSL library enabled
+// #error No supported TLS/SSL library enabled
 #endif
 
 #ifdef _WIN32
@@ -1044,21 +1044,21 @@ cleanup:
  *
  * @return 1 if the key was successfully imported.
  */
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
-userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, key_data_t* key)
-#elif defined(HAVE_GNUTLS)
-userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, gnutls_x509_privkey_t key)
-#endif
-{
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
-	if (!key)
-		return USERPREF_E_SUCCESS;
-#endif
-	userpref_error_t ret = USERPREF_E_INVALID_CONF;
 
 #if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
+userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, key_data_t* key)
+{
+	if (!key)
+		return USERPREF_E_SUCCESS;
+	userpref_error_t ret = USERPREF_E_INVALID_CONF;
+
 	ret = pair_record_get_item_as_key_data(pair_record, name, key);
+	return ret;
+}
 #elif defined(HAVE_GNUTLS)
+userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, gnutls_x509_privkey_t key)
+{
+	userpref_error_t ret = USERPREF_E_INVALID_CONF;
 	key_data_t pem = { NULL, 0 };
 	ret = pair_record_get_item_as_key_data(pair_record, name, &pem);
 	if (ret == USERPREF_E_SUCCESS && GNUTLS_E_SUCCESS == gnutls_x509_privkey_import(key, &pem, GNUTLS_X509_FMT_PEM))
@@ -1068,9 +1068,11 @@ userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const cha
 
 	if (pem.data)
 		free(pem.data);
-#endif
 	return ret;
 }
+#else
+// jb-todo: implement using rustls
+#endif
 
 /**
  * Private function which import the given certificate into a gnutls structure.
@@ -1082,19 +1084,17 @@ userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const cha
  */
 #if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
 userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, key_data_t* cert)
-#else
-userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, gnutls_x509_crt_t cert)
-#endif
 {
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
 	if (!cert)
 		return USERPREF_E_SUCCESS;
-#endif
+	ret = pair_record_get_item_as_key_data(pair_record, name, cert);
+	return ret;
+}
+#elif defined(HAVE_GNUTLS)
+userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, gnutls_x509_crt_t cert)
+{
 	userpref_error_t ret = USERPREF_E_INVALID_CONF;
 
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
-	ret = pair_record_get_item_as_key_data(pair_record, name, cert);
-#elif defined(HAVE_GNUTLS)
 	key_data_t pem = { NULL, 0 };
 	ret = pair_record_get_item_as_key_data(pair_record, name, &pem);
 	if (ret == USERPREF_E_SUCCESS && GNUTLS_E_SUCCESS == gnutls_x509_crt_import(cert, &pem, GNUTLS_X509_FMT_PEM))
@@ -1104,9 +1104,11 @@ userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const cha
 
 	if (pem.data)
 		free(pem.data);
-#endif
 	return ret;
 }
+#else
+// jb-todo: implement using rustls
+#endif
 
 userpref_error_t pair_record_get_host_id(plist_t pair_record, char** host_id)
 {

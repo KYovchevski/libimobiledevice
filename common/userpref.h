@@ -32,9 +32,14 @@ typedef struct {
 	unsigned char *data;
 	unsigned int size;
 } key_data_t;
-#else
+#elif defined(HAVE_GNUTLS)
 #include <gnutls/gnutls.h>
 typedef gnutls_datum_t key_data_t;
+#else 
+typedef struct {
+	unsigned char *data;
+	unsigned int size;
+} key_data_t;
 #endif
 
 #include <stdint.h>
@@ -72,7 +77,7 @@ userpref_error_t pair_record_generate_keys_and_certs(plist_t pair_record, key_da
 #if  defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
 userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, key_data_t* key);
 userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, key_data_t* cert);
-#else
+#elif defined(HAVE_GNUTLS)
 userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, gnutls_x509_privkey_t key);
 userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, gnutls_x509_crt_t cert);
 #endif

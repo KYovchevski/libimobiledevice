@@ -54,7 +54,7 @@
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/debug.h>
 #else
-#error No supported TLS/SSL library enabled
+//#error No supported TLS/SSL library enabled
 #endif
 
 #include <libimobiledevice-glue/socket.h>
@@ -687,6 +687,9 @@ idevice_error_t idevice_connection_send(idevice_connection_t connection, const c
 			ssize_t s = gnutls_record_send(connection->ssl_data->session, (void*)(data+sent), (size_t)(len-sent));
 #elif defined(HAVE_MBEDTLS)
 			int s = mbedtls_ssl_write(&connection->ssl_data->ctx, (const unsigned char*)(data+sent), (size_t)(len-sent));
+#else 
+			// jb-todo: implement using rustls
+			int s = 0;
 #endif
 			if (s < 0) {
 				break;
@@ -827,6 +830,8 @@ idevice_error_t idevice_connection_receive_timeout(idevice_connection_t connecti
 			} else {
 				break;
 			}
+#else
+// jb-todo: bad
 #endif
 		}
 		connection->ssl_recv_timeout = (unsigned int)-1;
@@ -896,6 +901,9 @@ idevice_error_t idevice_connection_receive(idevice_connection_t connection, char
 		ssize_t received = gnutls_record_recv(connection->ssl_data->session, (void*)data, (size_t)len);
 #elif defined(HAVE_MBEDTLS)
 		int received = mbedtls_ssl_read(&connection->ssl_data->ctx, (unsigned char*)data, (size_t)len);
+#else
+		int received = 0;
+		// jb-todo: implement using rustls
 #endif
 		if (received > 0) {
 			*recv_bytes = received;
@@ -950,6 +958,8 @@ idevice_error_t idevice_get_udid(idevice_t device, char **udid)
 typedef ssize_t ssl_cb_ret_type_t;
 #elif defined(HAVE_MBEDTLS)
 typedef int ssl_cb_ret_type_t;
+#else
+typedef ssize_t ssl_cb_ret_type_t;
 #endif
 
 /**
@@ -1184,6 +1194,7 @@ static int _mbedtls_f_rng(void* p_rng, unsigned char* buf, size_t len)
 }
 #endif
 
+#if define(HAVE_OPENSSL) || defined(HAVE_GNUTLS) || defined(HAVE_MBEDTLS)
 idevice_error_t idevice_connection_enable_ssl(idevice_connection_t connection)
 {
 	if (!connection || connection->ssl_data)
@@ -1434,8 +1445,6 @@ idevice_error_t idevice_connection_enable_ssl(idevice_connection_t connection)
 		return ret;
 	}
 
-	mbedtls_ssl_conf_rng(&ssl_data_loc->config, mbedtls_ctr_drbg_random, &ssl_data_loc->ctr_drbg);
-
 	mbedtls_ssl_conf_dbg(&ssl_data_loc->config, _mbedtls_log_cb, NULL);
 
 	mbedtls_ssl_conf_verify(&ssl_data_loc->config, cert_verify_cb, NULL);
@@ -1486,6 +1495,7 @@ idevice_error_t idevice_connection_enable_ssl(idevice_connection_t connection)
 #endif
 	return ret;
 }
+#endif
 
 idevice_error_t idevice_connection_disable_ssl(idevice_connection_t connection)
 {

@@ -79,6 +79,9 @@ struct ssl_data_private {
 	mbedtls_ctr_drbg_context ctr_drbg;
 	mbedtls_x509_crt certificate;
 	mbedtls_pk_context root_privkey;
+#else
+	// jb-todo: implement for rustls
+	unsigned int k;
 #endif
 };
 typedef struct ssl_data_private *ssl_data_t;

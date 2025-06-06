@@ -61,6 +61,15 @@
 #define DEVICE_CLASS_WATCH   5
 #define DEVICE_CLASS_UNKNOWN 255
 
+
+
+#ifdef HAVE_RUSTLS 
+typedef void *ssl_data_t;
+
+void* malloc_rustls_data();
+void free_rustls_data(ssl_data_t d);
+
+#else 
 struct ssl_data_private {
 #if defined(HAVE_OPENSSL)
 	SSL *session;
@@ -79,12 +88,13 @@ struct ssl_data_private {
 	mbedtls_ctr_drbg_context ctr_drbg;
 	mbedtls_x509_crt certificate;
 	mbedtls_pk_context root_privkey;
-#else
-	// jb-todo: implement for rustls
-	unsigned int k;
+#else 
+#error "No supported TLS/SSL library enabled"
 #endif
 };
+
 typedef struct ssl_data_private *ssl_data_t;
+#endif
 
 struct idevice_connection_private {
 	idevice_t device;

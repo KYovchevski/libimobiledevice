@@ -328,9 +328,7 @@ static instproxy_error_t instproxy_receive_status_loop(instproxy_client_t client
 	char* error_name = NULL;
 	char* error_description = NULL;
 	uint64_t error_code = 0;
-#ifndef STRIP_DEBUG_CODE
 	int percent_complete = 0;
-#endif
 
 	instproxy_command_get_name(command, &command_name);
 
@@ -376,7 +374,6 @@ static instproxy_error_t instproxy_receive_status_loop(instproxy_client_t client
 				} else {
 					res = INSTPROXY_E_OP_IN_PROGRESS;
 				}
-#ifndef STRIP_DEBUG_CODE
 				percent_complete = -1;
 				instproxy_status_get_percent_complete(node, &percent_complete);
 				if (percent_complete >= 0) {
@@ -384,7 +381,6 @@ static instproxy_error_t instproxy_receive_status_loop(instproxy_client_t client
 				} else {
 					debug_info("command: %s, status: %s", command_name, status_name);
 				}
-#endif
 				free(status_name);
 				status_name = NULL;
 			}

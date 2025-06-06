@@ -232,6 +232,7 @@ static void plist_dict_add_label(plist_t plist, const char *label)
 
 lockdownd_error_t lockdownd_stop_session(lockdownd_client_t client, const char *session_id)
 {
+	printf("\n\nTRAVERSE session stop\n\n");
 	if (!client)
 		return LOCKDOWN_E_INVALID_ARG;
 
@@ -621,7 +622,8 @@ lockdownd_error_t lockdownd_client_new(idevice_t device, lockdownd_client_t *cli
 		.port = 0xf27e,
 		.ssl_enabled = 0
 	};
-
+		printf("\n\nTRAVERSE HMMMMMM1M\n\n");
+		debug_info("Hi");
 	property_list_service_client_t plistclient = NULL;
 	if (property_list_service_client_new(device, (lockdownd_service_descriptor_t)&service, &plistclient) != PROPERTY_LIST_SERVICE_E_SUCCESS) {
 		debug_info("could not connect to lockdownd (device %s)", device->udid);
@@ -712,6 +714,13 @@ lockdownd_error_t lockdownd_client_new_with_handshake(idevice_t device, lockdown
 	}
 
 	userpref_error_t uerr = userpref_read_pair_record(client_loc->device->udid, &pair_record);
+	printf("\n\nTRAVERSE userpref_read_pair_record %i\n\n", uerr);
+	{
+		key_data_t d;
+		pair_record_get_item_as_key_data(pair_record, USERPREF_ROOT_CERTIFICATE_KEY, &d);
+		printf("\n\nTRAVERSE %s\n\n", d.data);
+
+	}
 	if (uerr == USERPREF_E_READ_ERROR) {
 		debug_info("ERROR: Failed to retrieve pair record for %s", client_loc->device->udid);
 		lockdownd_client_free(client_loc);
@@ -770,8 +779,9 @@ lockdownd_error_t lockdownd_client_new_with_handshake(idevice_t device, lockdown
 				plist_free(pair_record);
 			}
 		}
-
+		printf("\n\nTRAVERSE HMMMMMMM %s\n\n", host_id);
 		ret = lockdownd_start_session(client_loc, host_id, NULL, NULL);
+			printf("\n\nTRAVERSE HMMMMMMM\n\n");
 		if (LOCKDOWN_E_SUCCESS != ret) {
 			debug_info("Session opening failed.");
 		}
@@ -802,6 +812,9 @@ static plist_t lockdownd_pair_record_to_plist(lockdownd_pair_record_t pair_recor
 
 	/* setup request plist */
 	plist_t dict = plist_new_dict();
+
+	printf("\n\nTRAVERSE host cert %s \n\n", pair_record->host_certificate);
+
 	plist_dict_set_item(dict, "DeviceCertificate", plist_new_data(pair_record->device_certificate, strlen(pair_record->device_certificate)));
 	plist_dict_set_item(dict, "HostCertificate", plist_new_data(pair_record->host_certificate, strlen(pair_record->host_certificate)));
 	plist_dict_set_item(dict, "HostID", plist_new_string(pair_record->host_id));
@@ -897,6 +910,7 @@ static lockdownd_error_t lockdownd_do_pair(lockdownd_client_t client, lockdownd_
 	if (!client)
 		return LOCKDOWN_E_INVALID_ARG;
 
+	printf("\nTRAVERSE lockdownd_do_pair\n");
 	lockdownd_error_t ret = LOCKDOWN_E_UNKNOWN_ERROR;
 	plist_t dict = NULL;
 	plist_t pair_record_plist = NULL;
@@ -1227,6 +1241,7 @@ lockdownd_error_t lockdownd_start_session(lockdownd_client_t client, const char 
 
 		debug_info("Enable SSL Session: %s", (use_ssl ? "true" : "false"));
 
+		printf("\n\nTRAVERSE HMMMMMMM %d\n\n", use_ssl);
 		if (use_ssl) {
 			ret = lockdownd_error(property_list_service_enable_ssl(client->parent));
 			client->ssl_enabled = (ret == LOCKDOWN_E_SUCCESS ? 1 : 0);

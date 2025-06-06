@@ -145,7 +145,6 @@ np_error_t np_client_free(np_client_t client)
 		dict = NULL;
 		property_list_service_receive_plist(parent, &dict);
 		if (dict) {
-#ifndef STRIP_DEBUG_CODE
 			char *cmd_value = NULL;
 			plist_t cmd_value_node = plist_dict_get_item(dict, "Command");
 			if (plist_get_node_type(cmd_value_node) == PLIST_STRING) {
@@ -160,7 +159,6 @@ np_error_t np_client_free(np_client_t client)
 			if (cmd_value) {
 				free(cmd_value);
 			}
-#endif
 			plist_free(dict);
 		}
 	}

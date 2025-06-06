@@ -459,6 +459,7 @@ static idevice_t idevice_from_mux_device(usbmuxd_device_info_t *muxdev)
 				free(device);
 				return NULL;
 		}
+		printf("addrlen = %d\n", addrlen);
 		device->conn_data = malloc(addrlen);
 		memcpy(device->conn_data, muxdev->conn_data, addrlen);
 		break;
@@ -689,7 +690,7 @@ idevice_error_t idevice_connection_send(idevice_connection_t connection, const c
 			int s = mbedtls_ssl_write(&connection->ssl_data->ctx, (const unsigned char*)(data+sent), (size_t)(len-sent));
 #else 
 			// jb-todo: implement using rustls
-			int s = 0;
+			int s = extern_connection_rustls_send(connection, (void*)(data + sent),  (size_t)(len - sent));
 #endif
 			if (s < 0) {
 				break;
@@ -901,8 +902,8 @@ idevice_error_t idevice_connection_receive(idevice_connection_t connection, char
 		ssize_t received = gnutls_record_recv(connection->ssl_data->session, (void*)data, (size_t)len);
 #elif defined(HAVE_MBEDTLS)
 		int received = mbedtls_ssl_read(&connection->ssl_data->ctx, (unsigned char*)data, (size_t)len);
-#else
-		int received = 0;
+#else		
+		int received = extern_connection_rustls_recv(connection, (void*)data, (size_t)len);
 		// jb-todo: implement using rustls
 #endif
 		if (received > 0) {
@@ -1115,7 +1116,6 @@ static int ssl_verify_callback(int ok, X509_STORE_CTX *ctx)
 	return 1;
 }
 
-#ifndef STRIP_DEBUG_CODE
 static const char *ssl_error_to_string(int e)
 {
 	switch(e) {
@@ -1141,7 +1141,6 @@ static const char *ssl_error_to_string(int e)
 			return "UNKOWN_ERROR_VALUE";
 	}
 }
-#endif
 #endif
 
 #if defined(HAVE_GNUTLS)
@@ -1194,7 +1193,10 @@ static int _mbedtls_f_rng(void* p_rng, unsigned char* buf, size_t len)
 }
 #endif
 
-#if define(HAVE_OPENSSL) || defined(HAVE_GNUTLS) || defined(HAVE_MBEDTLS)
+#if defined(HAVE_RUSTLS) 
+idevice_error_t extern_connection_enable_rustls(idevice_connection_t connection, plist_t pair_record);
+#endif
+
 idevice_error_t idevice_connection_enable_ssl(idevice_connection_t connection)
 {
 	if (!connection || connection->ssl_data)
@@ -1492,10 +1494,23 @@ idevice_error_t idevice_connection_enable_ssl(idevice_connection_t connection)
 		debug_info("SSL mode enabled, %s, cipher: %s", mbedtls_ssl_get_version(&ssl_data_loc->ctx), mbedtls_ssl_get_ciphersuite(&ssl_data_loc->ctx));
 		debug_info("SSL mode enabled");
 	}
+#elif defined(HAVE_RUSTLS)
+
+	userpref_error_t err;
+	key_data_t root_cert = { NULL, 0 };
+	// key_data_t root_privkey = { NULL, 0 };
+
+	err = pair_record_import_crt_with_name(pair_record, USERPREF_ROOT_CERTIFICATE_KEY, &root_cert);
+	if (err != 0) {
+		printf("Hippity hoppity %d\n", err);
+	}
+	// pair_record_import_key_with_name(pair_record, USERPREF_ROOT_PRIVATE_KEY_KEY, &root_privkey);
+	
+
+	ret = extern_connection_enable_rustls(connection, pair_record);
 #endif
 	return ret;
 }
-#endif
 
 idevice_error_t idevice_connection_disable_ssl(idevice_connection_t connection)
 {

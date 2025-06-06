@@ -27,7 +27,7 @@
 #include <config.h>
 #endif
 
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
+#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS) || defined(HAVE_RUSTLS)
 typedef struct {
 	unsigned char *data;
 	unsigned int size;
@@ -35,11 +35,8 @@ typedef struct {
 #elif defined(HAVE_GNUTLS)
 #include <gnutls/gnutls.h>
 typedef gnutls_datum_t key_data_t;
-#else 
-typedef struct {
-	unsigned char *data;
-	unsigned int size;
-} key_data_t;
+#else
+#error "No TLS backend enabled"
 #endif
 
 #include <stdint.h>
@@ -74,7 +71,7 @@ userpref_error_t userpref_save_pair_record(const char *udid, uint32_t device_id,
 userpref_error_t userpref_delete_pair_record(const char *udid);
 
 userpref_error_t pair_record_generate_keys_and_certs(plist_t pair_record, key_data_t public_key);
-#if  defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
+#if  defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS) || defined(HAVE_RUSTLS)
 userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, key_data_t* key);
 userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, key_data_t* cert);
 #elif defined(HAVE_GNUTLS)

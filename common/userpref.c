@@ -82,6 +82,7 @@
 #include "userpref.h"
 #include "debug.h"
 
+
 #if defined(HAVE_GNUTLS)
 const ASN1_ARRAY_TYPE pkcs1_asn1_tab[] = {
 	{"PKCS1", 536872976, 0},
@@ -1010,7 +1011,16 @@ cleanup:
 	mbedtls_pk_free(&host_pkey);
 	mbedtls_pk_free(&root_pkey);
 	mbedtls_ctr_drbg_free(&ctr_drbg);
+#elif defined(HAVE_RUSTLS)
+	ret = extern_generate_keys_and_certs(pair_record, 
+		public_key, 
+		&dev_cert_pem,
+		&root_key_pem,
+		&root_cert_pem,
+		&host_key_pem,
+		&host_cert_pem);
 #endif
+
 
 	/* make sure that we have all we need */
 	if (root_cert_pem.data && 0 != root_cert_pem.size
@@ -1019,6 +1029,10 @@ cleanup:
 	    && host_key_pem.data && 0 != host_key_pem.size
 	    && dev_cert_pem.data && 0 != dev_cert_pem.size) {
 		/* now set keys and certificates */
+
+		printf("%s\n", (char*)root_cert_pem.data);
+		// abort();
+
 		pair_record_set_item_from_key_data(pair_record, USERPREF_DEVICE_CERTIFICATE_KEY, &dev_cert_pem);
 		pair_record_set_item_from_key_data(pair_record, USERPREF_HOST_PRIVATE_KEY_KEY, &host_key_pem);
 		pair_record_set_item_from_key_data(pair_record, USERPREF_HOST_CERTIFICATE_KEY, &host_cert_pem);
@@ -1045,7 +1059,7 @@ cleanup:
  * @return 1 if the key was successfully imported.
  */
 
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
+#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS) || defined(HAVE_RUSTLS)
 userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const char* name, key_data_t* key)
 {
 	if (!key)
@@ -1082,9 +1096,11 @@ userpref_error_t pair_record_import_key_with_name(plist_t pair_record, const cha
  *
  * @return IDEVICE_E_SUCCESS if the certificate was successfully imported.
  */
-#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS)
+#if defined(HAVE_OPENSSL) || defined(HAVE_MBEDTLS) || defined(HAVE_RUSTLS)
 userpref_error_t pair_record_import_crt_with_name(plist_t pair_record, const char* name, key_data_t* cert)
 {
+	userpref_error_t ret = USERPREF_E_INVALID_CONF;
+
 	if (!cert)
 		return USERPREF_E_SUCCESS;
 	ret = pair_record_get_item_as_key_data(pair_record, name, cert);
@@ -1143,6 +1159,9 @@ userpref_error_t pair_record_get_item_as_key_data(plist_t pair_record, const cha
 		plist_get_data_val(node, &buffer, &length);
 		value->data = (unsigned char*)malloc(length+1);
 		memcpy(value->data, buffer, length);
+		// if (strcmp(name, USERPREF_ROOT_CERTIFICATE_KEY)) {
+		// 	printf("NASTY DEBUG %d\n%s\n", length, value->data);
+		// }
 		value->data[length] = '\0';
 		value->size = length+1;
 		free(buffer);

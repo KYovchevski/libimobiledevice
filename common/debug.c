@@ -39,6 +39,10 @@
 #include "asprintf.h"
 #endif
 
+#ifdef STRIP_DEBUG_CODE
+#error "WE WANT DEBUG CODE"
+#endif
+
 static int debug_level;
 
 void internal_set_debug_level(int level)
